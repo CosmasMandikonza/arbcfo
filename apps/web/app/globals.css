@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --pearl: #F7FAFF;
+    --frost: #FFFFFF;
+    --mist: #E6ECF5;
+    --mint: #2EE59D;
+    --iris: #6D28D9;
+    --coral: #FF6B6B;
+    --ink: #0B1020;
+  }
+
+  body {
+    @apply bg-pearl text-ink antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-frost rounded-2xl border border-mist shadow-soft;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-card hover:border-iris/20;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-iris px-4 py-2.5
+           text-sm font-medium text-white shadow-soft
+           transition-all duration-200
+           hover:bg-iris-800 hover:shadow-card
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-iris;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-frost px-4 py-2.5
+           text-sm font-medium text-ink border border-mist shadow-soft
+           transition-all duration-200
+           hover:bg-pearl hover:border-iris/20
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-medium text-ink-muted
+           transition-all duration-200
+           hover:bg-pearl hover:text-ink
+           active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-coral/10 px-4 py-2.5
+           text-sm font-medium text-coral border border-coral/20
+           transition-all duration-200
+           hover:bg-coral hover:text-white
+           active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-mist bg-frost px-4 py-2.5
+           text-sm text-ink placeholder:text-ink-light
+           transition-all duration-200
+           focus:border-iris focus:outline-none focus:ring-2 focus:ring-iris/20;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5
+           text-sm font-medium text-ink-muted
+           transition-all duration-200
+           hover:bg-iris/5 hover:text-iris;
+  }
+
+  .sidebar-link-active {
+    @apply sidebar-link bg-iris/10 text-iris;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1
+           text-xs font-medium;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-mist rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-light;
+}
+
+/* Toast overrides */
+[data-sonner-toaster] {
+  --normal-bg: var(--frost);
+  --normal-border: var(--mist);
+}

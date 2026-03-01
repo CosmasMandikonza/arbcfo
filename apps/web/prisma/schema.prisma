@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Intent {
+  id              Int      @id @default(autoincrement())
+  creator         String
+  vendor          String
+  vendorName      String   @default("")
+  token           String
+  amount          String
+  amountFormatted Float
+  categoryId      Int
+  invoiceHash     String   @unique
+  memoHash        String
+  memo            String   @default("")
+  dueDate         Int
+  status          Int      @default(1)
+  approvalCount   Int      @default(0)
+  createdAt       Int
+  executedAt      Int      @default(0)
+  invoiceNumber   String   @default("")
+  txHash          String?
+  receiptId       String?
+  onchainId       String?
+
+  // Oracle fields — populated when intent is created
+  riskScore       Int?
+  oracleDecision  String?      // "SAFE" | "REVIEW" | "BLOCKED"
+  oracleTxHash    String?      // real tx hash from assessRisk call
+  oracleBreakdown String?      // JSON string of breakdown
+
+  approvals Approval[]
+
+  @@index([status])
+  @@index([vendor])
+  @@index([categoryId])
+}
+
+model Approval {
+  id        Int     @id @default(autoincrement())
+  intentId  Int
+  approver  String
+  signature String  @default("")
+  onchain   Boolean @default(false)
+  createdAt Int
+
+  intent Intent @relation(fields: [intentId], references: [id])
+
+  @@unique([intentId, approver])
+  @@index([intentId])
+  @@index([approver])
+}
+
+model Receipt {
+  receiptId       String @id
+  intentId        Int
+  vendor          String
+  vendorName      String @default("")
+  token           String
+  amount          String
+  amountFormatted Float
+  categoryId      Int
+  invoiceHash     String
+  memoHash        String
+  executedAt      Int
+  txHash          String @default("")
+
+  @@index([vendor])
+  @@index([categoryId])
+  @@index([executedAt])
+}
+
+model Vendor {
+  address String  @id
+  name    String
+  allowed Boolean @default(false)
+  addedAt Int
+}
+
+model TeamMember {
+  address   String   @id
+  name      String   @default("")
+  role      String   @default("OPERATOR")
+  createdAt DateTime @default(now())
+}

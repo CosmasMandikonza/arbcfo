@@ -1,182 +1,177 @@
 # ArbCFO
 
-**AI-Powered Invoice → Risk Scoring → Approval → USDC Payment → Audit-Ready Receipt** on Arbitrum.
+**The permissionless treasury control plane for tokenized assets.**
 
-ArbCFO is an institutional-grade treasury operations layer built on Arbitrum. It replaces spreadsheet-based AP processes with a system where an **AI agent** parses invoices, a **Stylus WASM contract** performs real-time statistical anomaly detection, multi-signature approval gates every payment, and immutable receipts are minted onchain.
+Policy-enforced, approval-aware, risk-routed execution for stablecoin and tokenized-asset operations across the Arbitrum ecosystem.
 
-**What makes ArbCFO different:** We use **Arbitrum Stylus** (Rust → WASM) to run statistical math (EMA, variance, Z-score) *inside* a smart contract at 10-100x lower gas cost than Solidity, enabling per-transaction risk scoring that would be prohibitively expensive on the EVM.
+Deployed on **Arbitrum Sepolia** and **Robinhood Chain**. 30/30 tests passing.
 
 ---
 
-## Architecture
+## The Problem
+
+Tokenized assets make value programmable. Treasury controls haven't kept up.
+
+- **Approvals are scattered** — multisigs, Telegram, email, spreadsheets
+- **Policy is manual** — budget limits and vendor rules enforced by humans, not contracts
+- **Risk is unrouted** — every transaction gets the same treatment, no oracle decisioning
+- **Audit trails are fragmented** — no immutable on-chain receipt for executed operations
+
+This gap widens as tokenized equities, stablecoins, and RWAs become liquid and always-on.
+
+## The Solution
+
+ArbCFO turns treasury execution into a programmable on-chain control plane:
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                           ArbCFO System                              │
-│                                                                      │
-│  ┌──────────────┐   ┌──────────────────┐   ┌─────────────────────┐  │
-│  │  AI Agent     │──▶│  ArbCFOVault     │──▶│  Stylus RiskEngine  │  │
-│  │  (LangChain   │   │  (Solidity/EVM)  │   │  (Rust/WASM)        │  │
-│  │   + GPT-4o)   │   │                  │   │                     │  │
-│  │              │   │  createIntent()  │   │  evaluateRisk()     │  │
-│  │  Invoice ──▶  │   │  executeIntent() │   │    │                │  │
-│  │  Extraction  │   │       │          │   │    ▼                │  │
-│  │  + Validation│   │       ▼          │   │  EMA + Variance     │  │
-│  └──────────────┘   │  if (!isSafe):   │   │  Z-score (>3σ)      │  │
-│                      │    HOLD for      │◀──│  fixed-point U256   │  │
-│                      │    multisig      │   │  ~10k gas           │  │
-│                      │  else:           │   │  (vs ~200k EVM)     │  │
-│  ┌──────────────┐   │    execute +     │   └─────────────────────┘  │
-│  │  Next.js App  │   │    mint receipt  │                            │
-│  │  (Dashboard)  │──▶│       │          │   ┌─────────────────────┐  │
-│  │              │   │       ▼          │──▶│  PolicyEngine        │  │
-│  │  Approvals   │   │  PolicyEngine   │   │  (Solidity)          │  │
-│  │  Receipts    │   │  check + record  │   │  Budget limits       │  │
-│  │  Risk Scores │   │       │          │   │  Token allowlists    │  │
-│  └──────────────┘   │       ▼          │   └─────────────────────┘  │
-│                      │  ReceiptRegistry│   ┌─────────────────────┐  │
-│                      │  mint onchain   │──▶│  ReceiptRegistry     │  │
-│                      │  audit receipt  │   │  (Solidity)          │  │
-│                      └──────────────────┘   └─────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────┘
+Create Intent → Collect Approvals → Policy Check → Oracle Decision → Execute or Block → Mint Receipt
 ```
 
-## Monorepo Structure
+**Oracle routing outcomes:**
+- **SAFE** — auto-proceeds to execution
+- **REVIEW** — held for human multisig approval
+- **BLOCKED** — rejected by oracle, too risky
+
+Every step is auditable. Every receipt is immutable. Any contract can call `assessRisk()` in one line.
+
+## What's Live Today
+
+| Feature | Status |
+|---------|--------|
+| AI-assisted intent creation (GPT-4.1) | ✅ Live |
+| On-chain oracle risk scoring with Arbiscan proof | ✅ Live |
+| EIP-712 approval signature collection | ✅ Live |
+| On-chain policy engine enforcement | ✅ Live |
+| Immutable execution receipts | ✅ Live |
+| Team roles and configurable thresholds | ✅ Live |
+| Split attack detection demo | ✅ Live |
+
+## Technical Architecture
 
 ```
-arbcfo/
-├── apps/
-│   ├── web/                    # Next.js 14 dashboard
-│   │   ├── app/                # App router pages
-│   │   ├── components/         # React components
-│   │   ├── prisma/             # Database schema + seeds
-│   │   └── lib/                # Utilities
-│   └── agent/                  # AI-powered CLI agent
-│       └── src/
-│           ├── cli.ts          # CLI commands (intake, propose, ai-intake)
-│           └── agent.ts        # LangChain + Viem agent core
-│
-├── contracts/
-│   ├── src/                    # Solidity contracts
-│   │   ├── ArbCFOVault.sol     # Treasury vault with risk engine integration
-│   │   ├── PolicyEngine.sol    # Onchain spending policies
-│   │   ├── ReceiptRegistry.sol # Immutable audit receipts
-│   │   ├── IRiskEngine.sol     # Solidity interface for Stylus contract
-│   │   ├── IArbCFOTypes.sol    # Shared types, events, errors
-│   │   └── MockUSDC.sol        # Test token
-│   ├── test/                   # Foundry tests
-│   ├── script/                 # Deployment scripts
-│   └── stylus/                 # Arbitrum Stylus (Rust → WASM)
-│       ├── Cargo.toml          # Rust dependencies
-│       └── src/
-│           ├── lib.rs          # RiskEngine: EMA + variance + Z-score
-│           └── main.rs         # ABI export entry point
-│
-├── packages/shared/            # Shared TypeScript types
-├── submission/                 # Hackathon submission materials
-├── package.json
-├── pnpm-workspace.yaml
-├── DEPLOYMENT.md
-└── SECURITY.md
+┌─────────────────────────────────────────────────────────┐
+│  Frontend          Next.js · wagmi · viem · EIP-712     │
+├─────────────────────────────────────────────────────────┤
+│  API Layer         Prisma · Oracle integration · Intents│
+├─────────────────────────────────────────────────────────┤
+│  Smart Contracts   Vault · Policy · Oracle · Receipt    │
+├─────────────────────────────────────────────────────────┤
+│  Chains            Arbitrum Sepolia · Robinhood Chain    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Key Innovation: Stylus Risk Engine
+### Smart Contracts
 
-### The Problem
-DAOs manage $25B+ in treasuries but use basic multisigs with no automated risk detection. A compromised signer can drain a vault before anyone notices.
+| Contract | Purpose |
+|----------|---------|
+| **ArbCFOVault** | Treasury vault with intent lifecycle and EIP-712 approvals |
+| **PolicyEngine** | Budget limits, vendor allowlists, category rules |
+| **CompositeOracle** | Three-signal risk scoring: anomaly detection + identity + correlation |
+| **SolidityRiskEngine** | EMA + Mean Absolute Deviation statistical engine |
+| **ReceiptRegistry** | Immutable on-chain payment receipts |
+| **MockUSDC** | Test ERC-20 for deployment |
 
-### The Solution
-ArbCFO's risk engine runs **Exponential Moving Average (EMA)** and **Z-score analysis** on every vendor payment — *inside a smart contract*. This was previously impossible because:
+### The Oracle — Cross-Asset Correlation Detection
 
-- **In Solidity**: The math (sqrt, fixed-point multiplication, variance tracking) costs ~200k+ gas per call
-- **On Stylus (WASM)**: The same math costs ~10k gas. Sub-cent per transaction. Now we can risk-score *every single payment*
+The CompositeOracle combines three signals to score every transaction:
 
-### How It Works
+1. **Per-asset anomaly detection** — Exponential Moving Average + Mean Absolute Deviation for every recipient. Flags statistical outliers.
+2. **Sender identity verification** — Checks on-chain identity registry. Unverified senders get maximum scrutiny.
+3. **Cross-asset correlation** — Tracks aggregate volume to new recipients per epoch. Detects coordinated liquidation patterns invisible to per-transaction scoring.
+
+**Compound risk:** When identity and correlation signals overlap, scores multiply — not just add. An unknown entity executing a coordinated pattern triggers exponential risk escalation.
+
+### Split Attack Demo
+
+Five stock token liquidations. Each individually normal. The oracle catches the coordinated pattern:
 
 ```
-Payment: $5,000 to Acme Cloud (historical average: $1,500)
-
-1. EMA (Exponential Moving Average) = $1,620 (slowly adapts to trends)
-2. Variance = tracks how spread out payments are
-3. Z-score = |$5,000 - $1,620| / √(Variance) = 4.2σ
-
-4.2σ > 3.0σ threshold → ANOMALY DETECTED
-→ Payment held for multisig review (not reverted!)
-→ Admin can override after manual verification
+Payment 1 (TSLA)  → Score 20  → SAFE
+Payment 2 (AMZN)  → Score 29  → SAFE
+Payment 3 (NFLX)  → Score 41  → REVIEW
+Payment 4 (GOOGL) → Score 56  → REVIEW
+Payment 5 (NVDA)  → Score 80  → BLOCKED
 ```
 
-### Fixed-Point Math (No Floats in WASM)
+Every assessment is a real transaction on Arbitrum Sepolia with an Arbiscan link.
 
-WASM requires deterministic execution — no floating-point. All math uses U256 with 18 implicit decimals:
+## Deployments
 
-| Real Value | Fixed-Point (18 decimals) |
-|-----------|--------------------------|
-| 0.1 (α) | 100,000,000,000,000,000 |
-| 3.0 (Z threshold) | 3,000,000,000,000,000,000 |
-| √(x) | Newton's method, ≤128 iterations |
+### Arbitrum Sepolia (Chain 421614)
 
-## AI Agent (LangChain + GPT-4o)
+| Contract | Address |
+|----------|---------|
+| Vault | `0xF0FE25AD81bc47eF558fBf199009202Da3EA3b71` |
+| PolicyEngine | `0x1a11d9417c6AD4E6C3570457Fe883D639127D588` |
+| ReceiptRegistry | `0x6Ab0fF295ed542C4e2b778D78324D9a7De52BbD2` |
+| RiskEngine | `0xfba39E80a93707536D0D3dd4ab6106F4cc37F8de` |
+| CompositeOracle | `0xf5c9Cb7522f208e3cd4E3c483D463b992a800bD9` |
+| MockUSDC | `0x7b94Fa0968ab87d517dC0Bf20c1951a977C7017d` |
 
-The agent uses GPT-4o structured output to parse any invoice format:
+### Robinhood Chain Testnet (Chain 46630)
+
+| Contract | Address |
+|----------|---------|
+| Vault | `0xd19118A75713C62825906D10912209316dFd73D9` |
+| PolicyEngine | `0xb9946CC7A2AeEccc490fB982811938A224463b25` |
+| ReceiptRegistry | `0x95F167a3211f1AAae668DCF52733478C0ba2d3c4` |
+| RiskEngine | `0xc1533f0E064a16aa523b7ef0bF8132f492d53fE1` |
+| CompositeOracle | `0x8F93a6B7894224a60097Ee6D77506c0f96411d0f` |
+| MockUSDC | `0x08fAAbc19f5303efcDA34ECF16d8a1347A2c4488` |
+
+## Why Arbitrum
+
+- Payments, stablecoins, and RWAs are stated ecosystem priorities
+- ATM Council manages hundreds of millions in ARB — needs per-transaction risk scoring
+- Stylus enables Rust-native statistical computation
+- Not chain-agnostic — Arbitrum-native treasury infrastructure
+
+## Why Robinhood Chain
+
+- ~2,000 tokenized stocks and ETFs on Arbitrum, $55M+ cumulative mint volume
+- Robinhood Chain mainnet planned for 2026
+- Tokenized equities need operational controls: approval routing, risk scoring, audit trails
+- ArbCFO is the treasury/risk infrastructure layer for that world
+
+## Tests
 
 ```bash
-# Parse any invoice — email, PDF text, freeform text
-pnpm agent:ai "INVOICE #847 From: Acme LLC Wallet: 0xd8dA... Total: $1,650.50"
-
-# Parse + submit to Arbitrum Sepolia
-OPENAI_API_KEY=sk-... pnpm agent:submit invoice.txt
-
-# Legacy regex parser still available
-pnpm agent dev intake invoice.txt
+cd contracts
+forge test
+# 30/30 passing
 ```
-
-**Safety guardrails:** Zod schema enforcement, address checksum validation, $10M sanity ceiling, confidence scoring, exponential backoff retry for Arbitrum Timeboost/RPC delays.
 
 ## Quick Start
 
 ```bash
-# Install
 pnpm install
 
 # Dashboard
+cd apps/web
+npx prisma db push
 pnpm dev
-pnpm db:push && pnpm db:seed
 
-# Tests
-pnpm contracts:test    # Solidity (Foundry)
-pnpm stylus:test       # Rust (Cargo)
-
-# Deploy
-pnpm contracts:deploy:sepolia
-pnpm stylus:deploy --private-key-path=/tmp/key.txt
+# Contracts
+cd contracts
+forge build
+forge test
 ```
-
-## Smart Contracts (Arbitrum Sepolia)
-
-| Contract | Role | Language |
-|----------|------|----------|
-| ArbCFOVault | Treasury vault, intent lifecycle, risk integration | Solidity |
-| PolicyEngine | Budget limits, token/vendor allowlists | Solidity |
-| ReceiptRegistry | Immutable payment receipts | Solidity |
-| **RiskEngine** | **EMA + Z-score anomaly detection** | **Rust (Stylus/WASM)** |
-| MockUSDC | Test ERC-20 token | Solidity |
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, React, Tailwind CSS, Prisma + SQLite
-- **Smart Contracts**: Solidity 0.8.24, OpenZeppelin, Foundry
-- **Risk Engine**: Rust, Arbitrum Stylus SDK 0.8.4, WASM
-- **AI Agent**: LangChain, GPT-4o, Zod, Viem
-- **Chain**: Arbitrum Sepolia (421614)
+- **Frontend:** Next.js 14, TypeScript, Tailwind CSS, wagmi, viem
+- **Smart Contracts:** Solidity 0.8.24, OpenZeppelin, Foundry
+- **Risk Engine:** Rust, Arbitrum Stylus SDK, WASM
+- **AI Parsing:** GPT-4.1, structured output
+- **Database:** Prisma + SQLite
+- **Chains:** Arbitrum Sepolia, Robinhood Chain Testnet
 
-## Security
+## Roadmap
 
-- M-of-N multi-approval with EIP-712 typed signatures
-- ReentrancyGuard + Pausable emergency stops
-- Onchain policy enforcement (budget limits, allowlists)
-- Statistical anomaly detection (Z-score > 3σ)
-- Duplicate invoice prevention (hash-based dedup)
-- AI validation guardrails (checksum, amount ceiling, confidence)
+- **Now:** Live MVP on Arbitrum Sepolia + Robinhood Chain
+- **Q2 2026:** Production oracle hardening, richer policy templates
+- **Q3 2026:** Arbitrum One mainnet, tokenized-asset specific controls
+- **Q4 2026:** Reporting/audit export, cross-chain aggregation
 
 ## License
 

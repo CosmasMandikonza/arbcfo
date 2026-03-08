@@ -1,0 +1,32 @@
+{
+  "name": "@arbcfo/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "arb-cfo": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "ai:parse": "tsx src/cli.ts ai-intake",
+    "ai:submit": "tsx src/cli.ts ai-intake --submit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "node-fetch": "^3.3.2",
+    "@arbcfo/shared": "workspace:*",
+    "@langchain/openai": "^0.4.0",
+    "zod": "^3.23.0",
+    "viem": "^2.20.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsx": "^4.11.0",
+    "@types/node": "^20.12.0"
+  }
+}

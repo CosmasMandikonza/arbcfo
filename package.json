@@ -1,0 +1,31 @@
+{
+  "name": "arbcfo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Invoice → Approval → USDC payment → Audit-ready receipt on Arbitrum",
+  "scripts": {
+    "dev": "pnpm --filter @arbcfo/web dev",
+    "build": "pnpm --filter @arbcfo/web build",
+    "test": "pnpm --filter @arbcfo/contracts test && pnpm --filter @arbcfo/web test",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test -vvv",
+    "contracts:deploy:sepolia": "cd contracts && forge script script/Deploy.s.sol --rpc-url arbitrum-sepolia --broadcast --verify",
+    "contracts:deploy:arbone": "cd contracts && forge script script/Deploy.s.sol --rpc-url arbitrum-one --broadcast --verify",
+    "db:push": "pnpm --filter @arbcfo/web prisma db push",
+    "db:seed": "pnpm --filter @arbcfo/web prisma db seed",
+    "db:studio": "pnpm --filter @arbcfo/web prisma studio",
+    "agent": "pnpm --filter @arbcfo/agent",
+    "agent:ai": "pnpm --filter @arbcfo/agent ai:parse",
+    "agent:submit": "pnpm --filter @arbcfo/agent ai:submit",
+    "stylus:check": "cd contracts/stylus && cargo stylus check --endpoint https://sepolia-rollup.arbitrum.io/rpc",
+    "stylus:test": "cd contracts/stylus && cargo test",
+    "stylus:deploy": "cd contracts/stylus && cargo stylus deploy --endpoint https://sepolia-rollup.arbitrum.io/rpc",
+    "stylus:export-abi": "cd contracts/stylus && cargo stylus export-abi --json",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}

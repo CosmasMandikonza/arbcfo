@@ -1,0 +1,22 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 10000
+via_ir = false
+ffi = false
+
+[rpc_endpoints]
+arbitrum-sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
+arbitrum-one = "https://arb1.arbitrum.io/rpc"
+
+[etherscan]
+arbitrum-sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.arbiscan.io/api" }
+arbitrum-one = { key = "${ETHERSCAN_API_KEY}", url = "https://api.arbiscan.io/api" }
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = true

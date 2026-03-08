@@ -1,0 +1,23 @@
+"use client";
+import { usePathname } from "next/navigation";
+import { Sidebar } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/top-bar";
+
+export function ConditionalLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isLanding = pathname === "/";
+
+  if (isLanding) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
